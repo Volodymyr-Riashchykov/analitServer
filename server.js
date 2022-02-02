@@ -152,13 +152,18 @@ app.post('/bur', async (req, res) => {
     flame_e,
     candle_s,
     candle_e,
-    // date_s,
-    // date_e,
-    // win,
-    // loss,
+    date_s,
+    date_e,
+    win,
+    loss,
     // symbol
   } = req.body
-  const pars = await Parser.find().sort({ $natural: -1 });
+  const pars = await Parser.find({
+    date: {
+        $gte: date_s,
+        $lt: date_e
+    }
+}).sort({ $natural: -1 });
   const p = []
   // console.log('c=', Number(candle_s) / 100);
   // console.log('cN=', Number(candle_s));
@@ -166,7 +171,13 @@ app.post('/bur', async (req, res) => {
   let dc;
   let df;
   let arr = [];
-  pars.forEach((par,i) => {
+  let k = 0;
+  let isOpen = false;
+  pars.forEach((par, i) => {
+    if (isOpen) {
+      p[k - 1].push(par);
+      isOpen = false;
+    }
     if (par.open > par.close) {
       dc = (par.open - par.close) / (par.high - par.low);
       df = (par.high - par.open) / (par.high - par.low);
@@ -175,20 +186,47 @@ app.post('/bur', async (req, res) => {
       dc = (par.close - par.open) / (par.high - par.low);
       df = (par.high - par.close) / (par.high - par.low);
     }
-    // par['ind'] = 'i';
-    par.ind = i;
+    // // par['ind'] = 'i';
+    // par.ind = i;
     if (dc > Number(candle_s) / 100 &&
       dc < Number(candle_e) / 100 &&
       df > Number(flame_s) / 100 &&
       df < Number(flame_e) / 100) {
-      par['ind'] = i;
-      console.log('p-',par.ind);
-      p.push(par)
+      // par['ind'] = i;
+      // console.log('p-',par.ind);
+      p.push( [par] )
+      // p.push({ [k]: [par] })
+      k++;
       arr.push(i)
+      isOpen = true;
     }
+    p.forEach(pi=>{
+      if (pi[0].res === undefined && pi[1] !== undefined) {
+        const b = (pi[1].open * (Number(win) / 100) + pi[1].open);
+        const m = (pi[1].open - (pi[1].open * (Number(loss) / 100)));
+        // pi.push(par);
+        if (b <= par.high) {
+          const r = b - pi[1].open;
+          pi.push(par);
+          pi.unshift({ res: r });
+          // console.log('pi=',pi);
+          return
+        }
+
+        if(m >= par.low) {
+          const r = m - pi[1].open;
+          pi.push(par);
+          pi.unshift({ res: r });
+          return
+        }
+        // pi.push(par);
+      }
+    })
   })
-  console.log('p-',p[0].ind,'',p[0]);
-  res.json([{a:p.length,b:arr,c:p}])
+  // console.log('p-',p[0],'p0=',p[1][1]);
+  // res.json([{ c: p, a: p.length, b: arr }]);
+  res.json(p)
+  //
 })
 app.get('/dates', async (req, res) => {
   const a = await Parser.find().sort({ $natural: -1 }).limit(1);
