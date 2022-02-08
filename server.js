@@ -5,7 +5,7 @@ const axios = require('axios');
 const {Order,Norder,Parser,Sort} = require('./models')
 const { Perebor, Poick, Kolection } = require('./controllers/cont');
 const OrderNew = require('./controllers/order')
-
+const {ClickHouse} = require('clickhouse');
 
 require('dotenv').config()
 
@@ -18,6 +18,29 @@ const app = express()
 app.use(express.json())
 // cors
 app.use(cors())
+
+// let ch_url = 'http://91.210.37.162:3333';// ';localhost
+const ch_url = process.env.KX_HOST;
+const password = process.env.KX_PASS;
+
+const clickhouse = new ClickHouse({
+            url: ch_url,
+            port: 8123,
+            debug: false,
+            basicAuth: {
+                username: 'default',
+                password,
+            },
+            isUseGzip: false,
+            format: "json", // "json" || "csv" || "tsv"
+            raw: false,
+            config: {
+                session_timeout                         : 60,
+                output_format_json_quote_64bit_integers : 0,
+                enable_http_compression                 : 0,
+                database                                : 'default',
+            },
+        });
 
 // async function par() {
 //   // await Parser.find().sort({datefield: -1});.limit(5){$where: '(this.open - this.close > 100)'}
@@ -146,7 +169,7 @@ async function exam() {
 }
 // exam();
 // OrderNew();
-app.post('/bur', async (req, res) => {
+app.post('/burse', async (req, res) => {
   const {
     flame_s,
     flame_e,
@@ -228,12 +251,165 @@ app.post('/bur', async (req, res) => {
   res.json(p)
   //
 })
-app.get('/dates', async (req, res) => {
+app.post('/bur', async (request, response) => {
+  const {
+    flame_s,
+    flame_e,
+    candle_s,
+    candle_e,
+    date_s,
+    date_e,
+    win,
+    loss,
+    // symbol2021-12-29 00:00:002021-12-30 00:00:00
+  } = request.body
+
+                    //coin_id b11ec618-e305-4891-85b1-ea41758efb14 соответствует BNT-USDT
+                    //из таблицы выбираются 100 первых строк
+                    let bur = [];
+                    for await (const row of clickhouse.query(`
+                         SELECT *
+                        FROM minutes_data
+                        WHERE open_time >= '${date_s}' and open_time < '${date_e}'
+                        ORDER BY open_time ASC
+                        `).stream()) {
+//WHERE coin_id='b11ec618-e305-4891-85b1-ea41758efb14'LIMIT 20000  DESCSELECT *COUNT(*) as count 
+                        bur.push(row);
+
+            }
+  const kk = bur.length;
+    const p = []
+  // console.log('c=', Number(candle_s) / 100);
+  // console.log('cN=', Number(candle_s));
+  // console.log('cc=', req.body);
+  let dc;
+  let df;
+  let arr = [];
+  let k = 0;
+  let isOpen = false;
+  bur.forEach((par, i) => {
+    
+    if (isOpen) {
+      p[k - 1].push(par);
+      isOpen = false;
+    }
+    if (par.open_value >= par.volume) {
+      if (par.high - par.low === 0) {
+        dc = 1;
+        df = 1;
+      }
+      else {
+        dc = (par.open_value - par.volume) / (par.high - par.low);
+        df = (par.high - par.open_value) / (par.high - par.low);
+      }
+      
+    }
+    else {
+      if (par.high - par.low === 0) {
+        dc = 1;
+        df = 1;
+      }
+      else {
+        dc = (par.close - par.open_value) / (par.high - par.low);
+        df = (par.high - par.volume) / (par.high - par.low);
+      }
+    }
+    // // par['ind'] = 'i';
+    // par.ind = i;
+    if (dc >= Number(candle_s) / 100 &&
+      dc <= Number(candle_e) / 100 &&
+      df >= Number(flame_s) / 100 &&
+      df <= Number(flame_e) / 100) {
+      // par['ind'] = i;,par.ind
+      // console.log('p-');
+      p.push( [par] )
+      // p.push({ [k]: [par] })
+      k++;
+      arr.push(i)
+      isOpen = true;
+    }
+    p.forEach(pi=>{
+      if (pi[0].res === undefined && pi[1] !== undefined) {
+        const b = (pi[1].open_value * (Number(win) / 100) + pi[1].open_value);
+        const m = (pi[1].open_value - (pi[1].open_value * (Number(loss) / 100)));
+        // pi.push(par);
+        if (b <= par.high) {
+          const r = b - pi[1].open_value;
+          pi.push(par);
+          pi.unshift({ res: r });
+          // console.log('pi=',pi);
+          return
+        }
+
+        if(m >= par.low) {
+          const r = m - pi[1].open_value;
+          pi.push(par);
+          pi.unshift({ res: r });
+          return
+        }
+        // pi.push(par);
+      }
+    })
+    // console.log('par=', par.open_value,
+    //   ' ', par.volume,
+    //   ' ', par.high,
+    //   ' ', par.low,
+    //   // ' ', par.number_of_trades,
+    //   // ' ', par.taker_buy_base_asset_volume,
+    //   // ' ', par.taker_buy_quote_asset_volume
+    //   ' ', dc,
+    //   ' ', Number(candle_s) / 100,
+    //   ' ', Number(candle_e) / 100,
+    //   ' ', df,
+    //   ' ', Number(flame_s) / 100,
+    //   ' ', Number(flame_e) / 100
+      
+    // );
+  })
+                    response.json({kk,s:p.length,p});
+});
+        
+app.get('/datee', async (request, response) => {
+
+                    //coin_id b11ec618-e305-4891-85b1-ea41758efb14 соответствует BNT-USDT
+                    //из таблицы выбираются 100 первых строк
+                    let return_response = [];
+                    for await (const row of clickhouse.query(`
+                         SELECT *
+                        FROM minutes_data
+                        ORDER BY open_time DESC
+                        LIMIT 1`).stream()) {
+//WHERE coin_id='b11ec618-e305-4891-85b1-ea41758efb14'LIMIT 20000  DESCSELECT *COUNT(*) as count ASC
+                        return_response.push(row);
+
+            }
+            const k = return_response.length;
+                    response.json({return_response,k});
+        });
+app.get('/dates', async (request, response) => {
+
+                    //coin_id b11ec618-e305-4891-85b1-ea41758efb14 соответствует BNT-USDT
+                    //из таблицы выбираются 100 первых строк
+                    let return_response = [];
+                    for await (const row of clickhouse.query(`
+                         SELECT *
+                        FROM minutes_data
+                        ORDER BY open_time ASC
+                        LIMIT 1`).stream()) {
+//WHERE coin_id='b11ec618-e305-4891-85b1-ea41758efb14'LIMIT 20000  DESCSELECT *COUNT(*) as count 
+                        return_response.push(row);
+
+            }
+            const k = return_response.length;
+                    response.json({return_response,k});
+        });
+                    
+app.get('/ddates', async (req, res) => {
   const a = await Parser.find().sort({ $natural: -1 }).limit(1);
   // console.log('a=',a[0].date);
   res.json(a[0].date)
 })
-app.get('/datee', async (req, res) => {
+app.get('/ddatee', async (req, res) => {
   const a = await Parser.find().sort({ $natural: 1 }).limit(1);
   // console.log('a=',a[0].date);
   res.json(a[0].date)
