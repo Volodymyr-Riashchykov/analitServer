@@ -384,7 +384,7 @@ app.get('/datee', async (request, response) => {
 
             }
             const k = return_response.length;
-                    response.json({return_response,k});
+                    response.json(return_response.open_time);
         });
 app.get('/dates', async (request, response) => {
 
@@ -401,7 +401,7 @@ app.get('/dates', async (request, response) => {
 
             }
             const k = return_response.length;
-                    response.json({return_response,k});
+                    response.json(return_response.open_time);
         });
                     
 app.get('/ddates', async (req, res) => {
