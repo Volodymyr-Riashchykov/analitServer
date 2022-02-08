@@ -366,7 +366,7 @@ app.post('/bur', async (request, response) => {
       
     // );
   })
-                    response.json({kk,s:p.length,p});
+                    response.json(p);
 });
         
 app.get('/datee', async (request, response) => {
