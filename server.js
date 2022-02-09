@@ -59,7 +59,7 @@ const clickhouse = new ClickHouse({
 //   console.log('p=',p.length,' ',pars.length);
 //   // await Sort.create(pars);
 //   console.log('aaa=');
-// } 
+// }
 // par()
 //.find({}, { "sort": [['datefield', 'asc']] }, function (err, docs) { });
 //.exec(function(err, doc) {})
@@ -75,7 +75,7 @@ const clickhouse = new ClickHouse({
 //     // console.log(p.date);
 //     await Parser.create(p)
 //   }
-//   // 
+//   //
     // console.log('aaa');
 // })
 
@@ -96,7 +96,7 @@ const clickhouse = new ClickHouse({
 // ]
 // // const ar2 =
 // // const ar3 =
-// // const ar4 = 
+// // const ar4 =
 // let nar = []
 // ar.forEach(a => {
 //   if (nar.length === 0) {
