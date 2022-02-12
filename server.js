@@ -37,7 +37,36 @@ const clickhouse = new ClickHouse({
             },
         });
 
+app.get('/date', async (req, res) => {
+  // 
+  const symbol = req.query.symbol;
+  // console.log('req=', symbol);
+  let bur = [];
+  for await (const row of clickhouse.query(`
+                         SELECT 
+                          MIN(open_time),
+                          MAX(open_time),
+                          MIN(volume),
+                          MAX(volume),
+                          MIN(number_of_trades),
+                          MAX(number_of_trades)
+                        FROM minutes_data
 
+                        WHERE coin_id='${symbol}'
+                        `).stream()) {
+//WHERE coin_id='b11ec618-e305-4891-85b1-ea41758efb14'LIMIT 20000  DESCSELECT *COUNT(*) as count 
+                        bur.push(row);
+
+  }
+  bur[0]["min(open_time)"] = new Date(bur[0]["min(open_time)"])
+  bur[0]["max(open_time)"] = new Date(bur[0]["max(open_time)"])
+  // console.log('b=',bur,' ',bur[0]["min(open_time)"]);
+  res.json(bur)
+});
+                        // WHERE open_time >= '${ts}' and open_time < '${te}' and coin_id='${symbol}'.
+                        //   and volume >= '${volume_s}' and volume <= '${volume_e}'
+                        //   and number_of_trades >= '${trade_s}' and number_of_trades <= '${trade_e}'
+                        //ORDER BY ${symbol}
 app.get('/', async (req, res) => {
   // console.log('sss=');
   let bd = [];
@@ -234,7 +263,7 @@ app.get('/datee', async (request, response) => {
                     response.json(new Date(return_response[0].open_time));
         });
 app.get('/dates', async (request, response) => {
-console.log('pr=');
+// console.log('pr=');
                     //coin_id b11ec618-e305-4891-85b1-ea41758efb14 соответствует BNT-USDT
                     //из таблицы выбираются 100 первых строк
                     let return_response = [];
@@ -255,11 +284,11 @@ console.log('pr=');
                     
 
 
-app.use('/api', (req, res) => {
-    const par = req.query;
-    const dem = "/api?,qs={pir:30,pew:30}";
-    res.json({par,dem})
-})
+// app.use('/api', (req, res) => {
+//     const par = req.query;
+//     const dem = "/api?,qs={pir:30,pew:30}";
+//     res.json({par,dem})
+// })
 // app.use('/api/contacts', contactApi)
 
 app.use((_, res, __) => {
