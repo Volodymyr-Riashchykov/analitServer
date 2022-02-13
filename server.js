@@ -14,9 +14,9 @@ app.use(express.json())
 // cors
 app.use(cors())
 
-// let ch_url = 'http://91.210.37.162:3333';// ';localhost
-const ch_url = process.env.KX_HOST;
-const password = process.env.KX_PASS;
+let ch_url = 'http://91.210.37.162:3333';// ';localhost
+// const ch_url = process.env.KX_HOST;
+// const password = process.env.KX_PASS;
 
 const clickhouse = new ClickHouse({
             url: ch_url,
@@ -24,7 +24,7 @@ const clickhouse = new ClickHouse({
             debug: false,
             basicAuth: {
                 username: 'default',
-                password,
+                password: 'test12345',
             },
             isUseGzip: false,
             format: "json", // "json" || "csv" || "tsv"
