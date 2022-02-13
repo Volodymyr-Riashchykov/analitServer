@@ -14,7 +14,8 @@ app.use(express.json())
 // cors
 app.use(cors())
 
-let ch_url = 'http://91.210.37.162:3333';// ';localhost
+// let ch_url = 'http://91.210.37.162:3333';// ';localhost
+let ch_url = 'localhost';
 // const ch_url = process.env.KX_HOST;
 // const password = process.env.KX_PASS;
 
