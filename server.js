@@ -119,7 +119,7 @@ app.post('/bur', validation(postSchema), async (request, response, next) => {
                           and volume >= '${volume_s}' and volume <= '${volume_e}'
                           and number_of_trades >= '${trade_s}' and number_of_trades <= '${trade_e}'
                         ORDER BY open_time ASC
-                        LIMIT 100000`).stream()) {
+                        LIMIT 200000`).stream()) {
 //WHERE coin_id='b11ec618-e305-4891-85b1-ea41758efb14'LIMIT 20000  DESCSELECT *COUNT(*) as count 
                         bur.push(row);
 
@@ -127,7 +127,7 @@ app.post('/bur', validation(postSchema), async (request, response, next) => {
   // console.timeLog('v0','1')
   const kk = bur.length;
     const p = []
-  
+  // console.log('ful=',full);
   let dc;
   let df;
   let k = 0;
@@ -139,7 +139,7 @@ app.post('/bur', validation(postSchema), async (request, response, next) => {
     if (isOpen) {
       p[k - 1].push(par);
       isOpen = false;
-      if (full==="false") isClose = true;
+      if (full===false) isClose = true;
     }
     const cand = par.high - par.low
     if (cand === 0) {
@@ -199,17 +199,17 @@ app.post('/bur', validation(postSchema), async (request, response, next) => {
      next(error);
   }
 })
-app.post('/burs', async (request, response) => {
-  console.time('v1')
+app.post('/dop', async (request, response) => {
+  // console.time('v1')
   const {
-    flame_s,
-    flame_e,
-    candle_s,
-    candle_e,
+    // flame_s,
+    // flame_e,
+    // candle_s,
+    // candle_e,
     date_s,
     date_e,
-    win,
-    loss,
+    // win,
+    // loss,
     symbol
   } = request.body
   // console.log('tt=',new Date(date_s).getTime());
@@ -217,23 +217,24 @@ app.post('/burs', async (request, response) => {
   const te = new Date(date_e).getTime()
   //coin_id b11ec618-e305-4891-85b1-ea41758efb14 соответствует BNT-USDT2021-12-29 00:00:002021-12-30 00:00:00
   //из таблицы выбираются 100 первых строк
-  console.timeLog('v1', '1');
-    const c_s = Number(candle_s) / 100 
-    const c_e = Number(candle_e) / 100 
-    const f_s = Number(flame_s) / 100 
-    const f_e = Number(flame_e) / 100
+  // console.timeLog('v1', '1');
+  //   const c_s = Number(candle_s) / 100 
+  //   const c_e = Number(candle_e) / 100 
+  //   const f_s = Number(flame_s) / 100 
+  //   const f_e = Number(flame_e) / 100
   let bur = [];
   for await (const row of clickhouse.query(`
                          SELECT *
                         FROM minutes_data
-                        WHERE open_time >= '${ts}' and open_time < '${te}' 
+                        WHERE open_time >= '${ts}' and open_time <= '${te}' 
                         and coin_id='${symbol}'
-                        and (high-low)!=0
-                        and (${c_e}>=( ABS(open_value-close_value)/ABS(high-low) )>=${c_s})
-                        and (((open_value>close_value) and (${f_s}>=((high-open_value)/(high-low) )>=${f_s}))or
-                        ((open_value<close_value) and (${f_s}>=((high-close_value)/(high-low) )>=${f_s})))
+                        
                         ORDER BY open_time ASC
                         `).stream()) {
+    // and (high-low)!=0
+    //                     and (${c_e}>=( ABS(open_value-close_value)/ABS(high-low) )>=${c_s})
+    //                     and (((open_value>close_value) and (${f_s}>=((high-open_value)/(high-low) )>=${f_s}))or
+    //                     ((open_value<close_value) and (${f_s}>=((high-close_value)/(high-low) )>=${f_s})))
     //// and (open_value>close_value and (( ${c_e}>=( (open_value-close_value)/(high-low) )>=${c_s} ) and ${f_s}>=((high-open_value)/(high-low) )>=${f_s} ) and
                         //     open_value<close_value and (( ${c_e}>=( (close_value-open_value)/(high-low) )>=${c_s} ) and ${f_s}<=((high-close_value)/(high-low) )<${f_e} ))
     //WHERE coin_id='b11ec618-e305-4891-85b1-ea41758efb14'LIMIT 20000  DESCSELECT *COUNT(*) as count 
@@ -241,7 +242,8 @@ app.post('/burs', async (request, response) => {
 //// and (open_value>close_value or high>open_value)
   }
   // console.timeEnd('v1','end')
-  response.json({a:bur.length,bur})
+  // response.json({ a: bur.length, bur })
+  response.json(bur)
 })
 app.get('/datee', async (request, response) => {
 
